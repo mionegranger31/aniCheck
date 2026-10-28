@@ -5,6 +5,7 @@ import {LogoutOutlined} from '@mui/icons-material';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import {useSearchParams} from 'react-router-dom';
+import ResetChangesButton from './ResetChangesButton';
 import SortMenu from './SortMenu';
 import {initialState, useSharedState} from './Store';
 import {deleteCache} from './lib/CacheUtils';
@@ -21,9 +22,9 @@ const LoaderHead: FC<BoxProps> = boxProps => {
         ...boxProps.sx,
         display: 'grid',
         //   gridTemplateRows: "60px",
-        gridTemplateColumns: '1fr 50px 50px 50px 50px',
+        gridTemplateColumns: '1fr 50px 50px 50px 50px 50px',
         gridTemplateRows: '50px',
-        gridTemplateAreas: "'. i1 i2 logout options'",
+        gridTemplateAreas: "'. i1 i2 reset logout options'",
         placeItems: 'center',
       }}
     >
@@ -49,6 +50,23 @@ const LoaderHead: FC<BoxProps> = boxProps => {
         >
           <SearchRoundedIcon />
         </IconButton>
+      ) : undefined}
+
+      {state.user.name ? (
+        <ResetChangesButton
+          sx={{
+            p: '8px',
+            backdropFilter: 'blur(8px)',
+            bgcolor: 'rgba(255,255,255,0.5)',
+            gridArea: 'reset',
+            border: '1px solid',
+            borderColor: 'primary.main',
+            color: 'primary.main',
+            ':hover': {
+              bgcolor: 'rgba(255,255,255,0.3)',
+            },
+          }}
+        />
       ) : undefined}
 
       {state.user.name ? (

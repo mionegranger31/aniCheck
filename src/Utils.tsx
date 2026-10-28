@@ -545,6 +545,32 @@ export function toggleHiddenNode(
   };
 }
 
+/** How many changes (hidden entries + cut links) the user has made */
+export function countUserChanges(userOptions: userOptionType): number {
+  return getHiddenNodes(userOptions).length + getCutLinks(userOptions).length;
+}
+
+/**
+ * Forget every hidden entry and every cut link. Hidden entries count again
+ * right away. Series are only built when the data is computed, so if links
+ * had been cut the caller must also recompute (see `ResetChangesButton`).
+ * @returns A state to set
+ */
+export function resetUserChanges(state: globalStateType): globalStateType {
+  const updated = updateCompletion({
+    ...state,
+    userOptions: {...state.userOptions, hiddenNodes: [], cutLinks: []},
+  });
+  const selectedId = state.seriesSelected?.seriesPrime.id;
+  return {
+    ...updated,
+    seriesSelected:
+      selectedId !== undefined
+        ? (updated.seriesDict[selectedId] ?? state.seriesSelected)
+        : state.seriesSelected,
+  };
+}
+
 /**
  * Compute completion for each series and global stats with the selected user parameter
  * @param state
