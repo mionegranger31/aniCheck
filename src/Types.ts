@@ -83,6 +83,12 @@ export type userOptionType = {
   cyFormatFilter: formatsType[];
   cyLayout: string;
   cyFilter: (formatsType | serieStatusType | statusType)[];
+  /**
+   * AniList media ids (as strings) the user chose to ignore when computing
+   * completion. Optional because caches saved before this option existed
+   * don't have it, always read it through `getHiddenNodes`.
+   */
+  hiddenNodes?: string[];
 };
 
 export type sortType = {

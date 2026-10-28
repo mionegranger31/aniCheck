@@ -412,6 +412,103 @@ export function getBulkStat(formatArr: formatsType[], stats: statsType) {
   };
 }
 
+const GOT_STATUSES: statusType[] = ['COMPLETED', 'DROPPED', 'REPEATING'];
+const PLAN_STATUSES: statusType[] = ['PLANNING', 'CURRENT', 'PAUSED'];
+const STATS_FORMATS: formatsType[] = [
+  'TV',
+  'TV_SHORT',
+  'MOVIE',
+  'SPECIAL',
+  'OVA',
+  'ONA',
+  'MUSIC',
+  'MANGA',
+  'NOVEL',
+  'ONE_SHOT',
+];
+
+/**
+ * Per format stats (tot, missing, got, plan and their weights) of a list of nodes.
+ * Cancelled entries and entries whose id is in `hidden` are not counted at all.
+ * @param nodes the nodes of a series
+ * @param hidden ids (as strings) of the entries the user chose to ignore
+ */
+export function computeStatsFromNodes(
+  nodes: NodeType[],
+  hidden: ReadonlySet<string> = new Set()
+): statsType {
+  const sumWeight = (els: NodeType[]) =>
+    els.reduce((acc, node) => acc + node.compWeight, 0);
+
+  const stat: {[key in formatsType]?: statsType[formatsType | 'selected']} = {};
+  for (const format of STATS_FORMATS) {
+    const formatEl = nodes.filter(
+      node =>
+        node.format === format &&
+        node.airStatus !== 'CANCELLED' &&
+        !hidden.has(String(node.id))
+    );
+    const missEl = formatEl.filter(node => node.status === 'NO');
+    const gotEl = formatEl.filter(node => GOT_STATUSES.includes(node.status));
+    const planEl = formatEl.filter(node => PLAN_STATUSES.includes(node.status));
+    stat[format] = {
+      tot: formatEl.length,
+      miss: missEl.length,
+      got: gotEl.length,
+      plan: planEl.length,
+      totWeight: sumWeight(formatEl),
+      missWeight: sumWeight(missEl),
+      gotWeight: sumWeight(gotEl),
+      planWeight: sumWeight(planEl),
+    };
+  }
+  return stat as statsType;
+}
+
+/// Hidden entries
+/** Ids of the entries the user chose to ignore. Safe on caches saved before the option existed */
+export function getHiddenNodes(userOptions: userOptionType): string[] {
+  return userOptions.hiddenNodes ?? [];
+}
+
+export function isNodeHidden(
+  userOptions: userOptionType,
+  nodeId: string | number
+): boolean {
+  return getHiddenNodes(userOptions).includes(String(nodeId));
+}
+
+/**
+ * Hide (or un-hide) an entry: it stops counting for the completion of its series,
+ * so a series with nothing else missing moves to completed.
+ * @returns A state to set
+ */
+export function toggleHiddenNode(
+  state: globalStateType,
+  nodeId: string | number
+): globalStateType {
+  const id = String(nodeId);
+  const current = getHiddenNodes(state.userOptions);
+  const hiddenNodes = current.includes(id)
+    ? current.filter(hidden => hidden !== id)
+    : [...current, id];
+
+  const updated = updateCompletion({
+    ...state,
+    userOptions: {...state.userOptions, hiddenNodes},
+  });
+
+  //Keep the open series pointing at the recomputed entry
+  const selectedId = state.seriesSelected?.seriesPrime.id;
+  return {
+    ...updated,
+    seriesSelected:
+      selectedId !== undefined
+        ? (updated.seriesDict[selectedId] ?? state.seriesSelected)
+        : state.seriesSelected,
+  };
+}
+
 /**
  * Compute completion for each series and global stats with the selected user parameter
  * @param state
@@ -424,6 +521,12 @@ export function updateCompletion(state: globalStateType) {
     miss: 0,
     plan: 0,
   };
+
+  //Recount every series from its nodes, ignoring the entries hidden by the user
+  const hidden = new Set(getHiddenNodes(state.userOptions).map(String));
+  for (const value of Object.values(state.seriesDict)) {
+    value.stats = computeStatsFromNodes(value.series.nodes, hidden);
+  }
 
   //Smart Completion Mode
   if (state.userOptions.smartCompletion) {
@@ -770,69 +873,9 @@ export function computeData(
 
   //Compute Stats
   const seriesList = seriesListSorted.map(serie => {
-    const stat: {[key in formatsType]?: statsType[formatsType | 'selected']} =
-      {};
-    for (const format of [
-      'TV',
-      'TV_SHORT',
-      'MOVIE',
-      'SPECIAL',
-      'OVA',
-      'ONA',
-      'MUSIC',
-      'MANGA',
-      'NOVEL',
-      'ONE_SHOT',
-    ] as const) {
-      const formatEl = serie.series
-        .nodes()
-        .filter(`node[format='${format}'][airStatus!="CANCELLED"]`); //TODO: This is a possible fix for the CANCELLED bug 🐛
-      // if (serie.seriesPrime.data("id") == 21093) {
-      //   console.log(format)
-      //   console.log(formatEl.filter("node[status='NO']"))
-      //   console.log(formatEl.filter("node[status='NO']").map((e) => { return e.data("compWeight") }))
-      // }
-      stat[format] = {
-        tot: formatEl.length ?? 0,
-        miss: formatEl.filter("node[status='NO']").length ?? 0,
-        got:
-          formatEl.filter(
-            "node[status='COMPLETED'],node[status='DROPPED'],node[status='REPEATING']"
-          ).length ?? 0,
-        plan:
-          formatEl.filter(
-            "node[status='PLANNING'],node[status='CURRENT'],node[status='PAUSED']"
-          ).length ?? 0,
-        totWeight: formatEl
-          .map(e => {
-            return e.data('compWeight');
-          })
-          ?.reduce?.((a: number, b: number) => a + b, 0),
-        missWeight: formatEl
-          .filter("node[status='NO']")
-          .map(e => {
-            return e.data('compWeight');
-          })
-          ?.reduce?.((a: number, b: number) => a + b, 0),
-        gotWeight: formatEl
-          .filter(
-            "node[status='COMPLETED'],node[status='DROPPED'],node[status='REPEATING']"
-          )
-          .map(e => {
-            return e.data('compWeight');
-          })
-          ?.reduce?.((a: number, b: number) => a + b, 0),
-        planWeight: formatEl
-          .filter(
-            "node[status='PLANNING'],node[status='CURRENT'],node[status='PAUSED']"
-          )
-          .map(e => {
-            return e.data('compWeight');
-          })
-          ?.reduce?.((a: number, b: number) => a + b, 0),
-        // per: Math.round((formatEl.filter("node[status!='NO']").length / formatEl.length) * 100),
-      };
-    }
+    const stat = computeStatsFromNodes(
+      serie.series.nodes().map(e => e.data())
+    );
     return {
       ...serie,
       stats: stat as statsType,

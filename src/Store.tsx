@@ -34,6 +34,7 @@ export const initialState: globalStateType = {
     cyFormatFilter: [],
     cyLayout: 'klay',
     cyFilter: [],
+    hiddenNodes: [],
   },
   seriesDict: {},
   seriesByStatus: {},

@@ -4,9 +4,11 @@ import {NodeType} from './Types';
 
 // import elk from "cytoscape-elk";
 import HighlightOffRounded from '@mui/icons-material/HighlightOffRounded';
+import VisibilityOffRounded from '@mui/icons-material/VisibilityOffRounded';
 import {Chip, Typography} from '@mui/material';
 import Box, {BoxProps} from '@mui/material/Box';
-import {FORMATS, RELEASE_STATUS, STATUSES} from './Utils';
+import HideNodeButton from './HideNodeButton';
+import {FORMATS, RELEASE_STATUS, STATUSES, isNodeHidden} from './Utils';
 
 type props = {
   node: NodeType;
@@ -15,6 +17,9 @@ type props = {
 const CardItemA: FC<props & BoxProps> = ({node, ...boxProps}) => {
   // const graphBox = useRef(null)
   const [state, setState] = useSharedState();
+  const hidden = isNodeHidden(state.userOptions, node.id);
+  const considered =
+    !hidden && !!state.seriesSelected?.formatsIncluded?.includes(node.format);
 
   return (
     <Box
@@ -32,9 +37,7 @@ const CardItemA: FC<props & BoxProps> = ({node, ...boxProps}) => {
         // width: '100%',
         // minWidth: '100%',
         m: 2,
-        opacity: state.seriesSelected?.formatsIncluded?.includes(node.format)
-          ? '1'
-          : '0.2',
+        opacity: considered ? '1' : '0.2',
         ':hover': {
           opacity: '1',
         },
@@ -106,14 +109,12 @@ const CardItemA: FC<props & BoxProps> = ({node, ...boxProps}) => {
               },
             }}
           />
-          {state.seriesSelected?.formatsIncluded?.includes(
-            node.format
-          ) ? undefined : (
+          {considered ? undefined : (
             <Chip
               color={STATUSES['NO'].color}
               variant="filled"
-              label={'Not Considered'}
-              icon={<HighlightOffRounded />}
+              label={hidden ? 'Hidden' : 'Not Considered'}
+              icon={hidden ? <VisibilityOffRounded /> : <HighlightOffRounded />}
               size="small"
               sx={{
                 // position: "absolute",
@@ -149,6 +150,10 @@ const CardItemA: FC<props & BoxProps> = ({node, ...boxProps}) => {
         }}
       >
         {/* <IconButton sx={{ gridArea: "link", overflow: "hidden" }}><OpenInNewRoundedIcon/></IconButton> */}
+        <HideNodeButton
+          node={node}
+          sx={{gridArea: 'link', alignSelf: 'start', m: 0.5}}
+        />
         <Box sx={{gridArea: 'title', mx: 2, my: 0, overflow: 'hidden'}}>
           <Typography
             // sx={{ color: "text.primary" }}

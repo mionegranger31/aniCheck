@@ -4,9 +4,11 @@ import {NodeType} from './Types';
 
 // import elk from "cytoscape-elk";
 import HighlightOffRounded from '@mui/icons-material/HighlightOffRounded';
+import VisibilityOffRounded from '@mui/icons-material/VisibilityOffRounded';
 import {Chip, Typography, useTheme} from '@mui/material';
 import Box, {BoxProps} from '@mui/material/Box';
-import {RELEASE_STATUS, STATUSES} from './Utils';
+import HideNodeButton from './HideNodeButton';
+import {RELEASE_STATUS, STATUSES, isNodeHidden} from './Utils';
 
 type props = {
   node: NodeType;
@@ -16,6 +18,9 @@ const CardItemMobile: FC<props & BoxProps> = ({node, ...boxProps}) => {
   // const graphBox = useRef(null)
   const [state, setState] = useSharedState();
   const theme = useTheme();
+  const hidden = isNodeHidden(state.userOptions, node.id);
+  const considered =
+    !hidden && !!state.seriesSelected?.formatsIncluded?.includes(node.format);
   return (
     <Box
       {...boxProps}
@@ -34,9 +39,7 @@ const CardItemMobile: FC<props & BoxProps> = ({node, ...boxProps}) => {
         boxSizing: 'border-box',
         mx: 1,
         mt: 2,
-        opacity: state.seriesSelected?.formatsIncluded?.includes(node.format)
-          ? '1'
-          : '0.2',
+        opacity: considered ? '1' : '0.2',
         ':hover': {
           opacity: '1',
         },
@@ -142,14 +145,12 @@ const CardItemMobile: FC<props & BoxProps> = ({node, ...boxProps}) => {
               },
             }}
           /> */}
-          {state.seriesSelected?.formatsIncluded?.includes(
-            node.format
-          ) ? undefined : (
+          {considered ? undefined : (
             <Chip
               color={STATUSES['NO'].color}
               variant="filled"
-              label={'Not Considered'}
-              icon={<HighlightOffRounded />}
+              label={hidden ? 'Hidden' : 'Not Considered'}
+              icon={hidden ? <VisibilityOffRounded /> : <HighlightOffRounded />}
               size="small"
               sx={{
                 // position: "absolute",
@@ -187,11 +188,16 @@ const CardItemMobile: FC<props & BoxProps> = ({node, ...boxProps}) => {
         }}
       >
         {/* <IconButton sx={{ gridArea: "link", overflow: "hidden" }}><OpenInNewRoundedIcon/></IconButton> */}
+        <HideNodeButton
+          node={node}
+          sx={{position: 'absolute', top: 2, right: 2}}
+        />
         <Box
           sx={{
             gridArea: 'title',
             // mx: 2,
             my: 0,
+            pr: 4, //Leave room for the hide button
             overflow: 'hidden',
             height: '100%',
           }}
