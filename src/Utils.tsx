@@ -14,6 +14,7 @@ import cytoscape from 'cytoscape';
 import {random} from 'lodash';
 import React from 'react';
 import {
+  cutLinkType,
   formatsBulkTermsType,
   formatsType,
   globalStateType,
@@ -465,6 +466,41 @@ export function computeStatsFromNodes(
   return stat as statsType;
 }
 
+/// Cut links
+/** Same key for a link whatever the direction it was declared in */
+export function linkKey(a: string | number, b: string | number): string {
+  const [first, second] = [String(a), String(b)].sort();
+  return `${first}-${second}`;
+}
+
+/** Relations the user decided are not real. Safe on caches saved before the option existed */
+export function getCutLinks(userOptions: userOptionType): cutLinkType[] {
+  return userOptions.cutLinks ?? [];
+}
+
+/**
+ * After a recalculation the open series may have changed or been split:
+ * find the new series holding the first of its old entries that still is in one.
+ */
+export function findSeriesOfEntries(
+  seriesDict: globalStateType['seriesDict'],
+  previous?: seriesListElementType
+): seriesListElementType | undefined {
+  if (!previous) return undefined;
+  const wanted = previous.series.nodes.map(node => String(node.id));
+  const owner = new Map<string, seriesListElementType>();
+  for (const serie of Object.values(seriesDict)) {
+    for (const node of serie.series.nodes) {
+      owner.set(String(node.id), serie);
+    }
+  }
+  for (const id of wanted) {
+    const found = owner.get(id);
+    if (found) return found;
+  }
+  return undefined;
+}
+
 /// Hidden entries
 /** Ids of the entries the user chose to ignore. Safe on caches saved before the option existed */
 export function getHiddenNodes(userOptions: userOptionType): string[] {
@@ -674,12 +710,14 @@ export function updateCompletion(state: globalStateType) {
  * @param data a list of the received lists
  * @param relationPriority
  * @param problematicNodes
+ * @param cutLinks relations to ignore, every edge between the two entries is dropped
  * @returns seriesDict
  */
 export function computeData(
   data: any[],
   relationPriority: {[key: string]: number},
-  problematicEles: string[]
+  problematicEles: string[],
+  cutLinks: Pick<cutLinkType, 'a' | 'b'>[] = []
 ) {
   console.log('ComputeData');
   const cy = cytoscape({headless: true});
@@ -775,6 +813,17 @@ export function computeData(
   };
 
   const [nodes, edges] = loadList(data);
+
+  //Drop the relations the user decided are not real, in both directions and
+  //whatever the relation type, before any series is built from the graph
+  if (cutLinks.length) {
+    const cut = new Set(cutLinks.map(link => linkKey(link.a, link.b)));
+    for (const [edgeId, edge] of edges) {
+      if (cut.has(linkKey(edge.data.source, edge.data.target))) {
+        edges.delete(edgeId);
+      }
+    }
+  }
 
   console.log(nodes, edges);
   // cy.elements().remove()

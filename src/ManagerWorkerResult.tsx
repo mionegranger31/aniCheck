@@ -1,7 +1,7 @@
 import {FC, useEffect} from 'react';
 import {useSharedState} from './Store';
 import {globalStateType} from './Types';
-import {updateCompletion} from './Utils';
+import {findSeriesOfEntries, updateCompletion} from './Utils';
 import {isCachesAvailable} from './lib/CacheUtils';
 import {useUpdateWorker} from './lib/useUpdateWorker';
 
@@ -60,10 +60,17 @@ const ManagerWorkerResult: FC = () => {
     switch (result.action) {
       case 'fullUpdate':
         setState(state => {
+          const updated = updateCompletion({
+            ...state,
+            seriesDict: result.result,
+          });
           return {
             ...state,
-            ...updateCache(
-              updateCompletion({...state, seriesDict: result.result})
+            ...updateCache(updated),
+            //The open series may have changed or been split by the new data
+            seriesSelected: findSeriesOfEntries(
+              updated.seriesDict,
+              state.seriesSelected
             ),
           };
         });

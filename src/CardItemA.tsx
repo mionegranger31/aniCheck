@@ -7,6 +7,7 @@ import HighlightOffRounded from '@mui/icons-material/HighlightOffRounded';
 import VisibilityOffRounded from '@mui/icons-material/VisibilityOffRounded';
 import {Chip, Typography} from '@mui/material';
 import Box, {BoxProps} from '@mui/material/Box';
+import CutLinkButton from './CutLinkButton';
 import HideNodeButton from './HideNodeButton';
 import {FORMATS, RELEASE_STATUS, STATUSES, isNodeHidden} from './Utils';
 
@@ -150,10 +151,10 @@ const CardItemA: FC<props & BoxProps> = ({node, ...boxProps}) => {
         }}
       >
         {/* <IconButton sx={{ gridArea: "link", overflow: "hidden" }}><OpenInNewRoundedIcon/></IconButton> */}
-        <HideNodeButton
-          node={node}
-          sx={{gridArea: 'link', alignSelf: 'start', m: 0.5}}
-        />
+        <Box sx={{gridArea: 'link', alignSelf: 'start', m: 0.5}}>
+          <CutLinkButton node={node} />
+          <HideNodeButton node={node} />
+        </Box>
         <Box sx={{gridArea: 'title', mx: 2, my: 0, overflow: 'hidden'}}>
           <Typography
             // sx={{ color: "text.primary" }}

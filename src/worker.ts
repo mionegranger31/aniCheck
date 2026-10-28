@@ -3,9 +3,10 @@ import {computeData} from './Utils';
 export const wComputeData = (
   data: any[],
   relationPriority: {[key: string]: number},
-  problematicEles: string[]
+  problematicEles: string[],
+  cutLinks: {a: string; b: string}[] = []
 ) => {
-  return computeData(data, relationPriority, problematicEles);
+  return computeData(data, relationPriority, problematicEles, cutLinks);
 };
 
 // export const wTest = () => {

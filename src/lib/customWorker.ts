@@ -8,7 +8,7 @@ self.onmessage = async e => {
   const data: {
     type: 'start';
     action: 'fullUpdate';
-    arguments: {user: string};
+    arguments: {user: string; cutLinks?: {a: string; b: string}[]};
   } = e.data;
   console.log(e);
 
@@ -70,7 +70,8 @@ self.onmessage = async e => {
             ...mangaResponse.data.MediaListCollection.lists,
           ],
           relationPriority,
-          problematicNodes
+          problematicNodes,
+          data.arguments.cutLinks ?? []
         );
 
         self.postMessage({

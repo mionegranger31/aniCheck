@@ -89,6 +89,21 @@ export type userOptionType = {
    * don't have it, always read it through `getHiddenNodes`.
    */
   hiddenNodes?: string[];
+  /**
+   * Relations the user decided are not real: the two entries stop being
+   * linked, but each keeps its other relations. Applied when the data is
+   * computed, always read it through `getCutLinks`.
+   */
+  cutLinks?: cutLinkType[];
+};
+
+export type cutLinkType = {
+  /** AniList media ids, as strings */
+  a: string;
+  b: string;
+  /** Kept only to show the link in the options, the entries may not be in any series anymore */
+  titleA: string;
+  titleB: string;
 };
 
 export type sortType = {
