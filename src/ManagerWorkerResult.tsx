@@ -1,9 +1,9 @@
 import {FC, useEffect} from 'react';
 import {useSharedState} from './Store';
 import {globalStateType} from './Types';
-import {findSeriesOfEntries, updateCompletion} from './Utils';
+import {findSeriesOfEntries, getCutLinks, updateCompletion} from './Utils';
 import {isCachesAvailable} from './lib/CacheUtils';
-import {useUpdateWorker} from './lib/useUpdateWorker';
+import {setCutLinksForUpdates, useUpdateWorker} from './lib/useUpdateWorker';
 
 //Ideally this component should be the only one processing the result from the worker
 const ManagerWorkerResult: FC = () => {
@@ -78,6 +78,12 @@ const ManagerWorkerResult: FC = () => {
     }
     setResult(null);
   }, [result]);
+
+  //Every update (also the ones started by other components) must apply the
+  //relations the user cut, and the worker hook can't read the state itself
+  useEffect(() => {
+    setCutLinksForUpdates(getCutLinks(state.userOptions));
+  }, [state.userOptions.cutLinks]);
 
   //This shouldn't be here, but it's a quick fix
   useEffect(() => {

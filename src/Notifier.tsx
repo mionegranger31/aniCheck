@@ -43,6 +43,10 @@ const Notifier: FC = () => {
     if (status[0] === 'success') {
       setTime(3000);
     }
+    //Let the reason of a failure be readable, then get out of the way
+    if (status[0] === 'error') {
+      setTime(10000);
+    }
     setOpen(true);
     setMsg(status[1]);
     setStatus(null);

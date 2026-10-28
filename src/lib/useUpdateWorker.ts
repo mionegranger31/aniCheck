@@ -2,19 +2,30 @@ import {Dispatch, useEffect, useState} from 'react';
 import {singletonHook} from 'react-singleton-hook';
 import {useSharedState} from '../Store';
 import {cutLinkType} from '../Types';
-import {getCutLinks} from '../Utils';
 import {talkingWorker} from './WebWorkersInterfaces';
+
+type cutLinksType = Pick<cutLinkType, 'a' | 'b'>[];
+
+//This hook runs in a React root of its own, outside the shared state provider
+//(the state is undefined in here), so it can't read the user options.
+//The relations the user cut are handed over by a component that is inside the
+//provider (ManagerWorkerResult), and used by every update that doesn't say otherwise.
+let latestCutLinks: cutLinksType = [];
+export const setCutLinksForUpdates = (cutLinks: cutLinksType) => {
+  latestCutLinks = cutLinks.map(({a, b}) => ({a, b}));
+};
+
 //sabre
 const IHateSingletonHookCreator = (
   action: 'fullUpdate',
-  args: {user: string; cutLinks?: Pick<cutLinkType, 'a' | 'b'>[]}
+  args: {user: string; cutLinks?: cutLinksType}
 ) => {
   console.log('Running');
   console.log(talkingWorker);
   talkingWorker.postMessage({
     type: 'start',
     action: action,
-    arguments: {user: args.user, cutLinks: args.cutLinks ?? []},
+    arguments: {user: args.user, cutLinks: args.cutLinks ?? latestCutLinks},
   });
 };
 
@@ -34,17 +45,7 @@ export const updateWorker = () => {
   //     arguments: { user: args.user },
   //   });
   // }, []);
-  //Every update, whoever starts it, must use the links the user has cut.
-  //Reading them while rendering is what makes this hook update when they change.
-  const cutLinks = getCutLinks(state.userOptions).map(({a, b}) => ({a, b}));
-  const run = (
-    action: Parameters<typeof IHateSingletonHookCreator>[0],
-    args: Parameters<typeof IHateSingletonHookCreator>[1]
-  ) =>
-    IHateSingletonHookCreator(action, {
-      ...args,
-      cutLinks: args.cutLinks ?? cutLinks,
-    });
+  const run = IHateSingletonHookCreator;
 
   // const getResult = () => {
   //   setResult(null);
