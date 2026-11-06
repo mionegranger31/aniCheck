@@ -431,6 +431,11 @@ const STATS_FORMATS: formatsType[] = [
 /**
  * Per format stats (tot, missing, got, plan and their weights) of a list of nodes.
  * Cancelled entries and entries whose id is in `hidden` are not counted at all.
+ * Entries not yet released don't count either, so a series whose only
+ * missing piece is something that can't be watched or read yet is complete.
+ * The exception is a series the user hasn't started (nothing released is
+ * watched or planned): there the unreleased entries still count, otherwise it
+ * would end up with nothing to count.
  * @param nodes the nodes of a series
  * @param hidden ids (as strings) of the entries the user chose to ignore
  */
@@ -441,14 +446,18 @@ export function computeStatsFromNodes(
   const sumWeight = (els: NodeType[]) =>
     els.reduce((acc, node) => acc + node.compWeight, 0);
 
+  const counted = nodes.filter(
+    node => node.airStatus !== 'CANCELLED' && !hidden.has(String(node.id))
+  );
+  const released = counted.filter(
+    node => node.airStatus !== 'NOT_YET_RELEASED'
+  );
+  const userStarted = released.some(node => node.status !== 'NO');
+  const considered = userStarted ? released : counted;
+
   const stat: {[key in formatsType]?: statsType[formatsType | 'selected']} = {};
   for (const format of STATS_FORMATS) {
-    const formatEl = nodes.filter(
-      node =>
-        node.format === format &&
-        node.airStatus !== 'CANCELLED' &&
-        !hidden.has(String(node.id))
-    );
+    const formatEl = considered.filter(node => node.format === format);
     const missEl = formatEl.filter(node => node.status === 'NO');
     const gotEl = formatEl.filter(node => GOT_STATUSES.includes(node.status));
     const planEl = formatEl.filter(node => PLAN_STATUSES.includes(node.status));
