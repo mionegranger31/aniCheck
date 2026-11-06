@@ -36,6 +36,7 @@ export const initialState: globalStateType = {
     cyFilter: [],
     hiddenNodes: [],
     cutLinks: [],
+    splitOtherRelations: false,
   },
   seriesDict: {},
   seriesByStatus: {},

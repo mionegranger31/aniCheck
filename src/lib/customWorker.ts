@@ -3,7 +3,11 @@ import {computeData, relationPriority} from '../Utils';
 import {GET_LISTS} from './queries';
 
 type CutLinks = {a: string; b: string}[];
-type FullUpdateArgs = {user: string; cutLinks?: CutLinks};
+type FullUpdateArgs = {
+  user: string;
+  cutLinks?: CutLinks;
+  splitOtherRelations?: boolean;
+};
 
 const ANILIST_URL = 'https://graphql.anilist.co';
 
@@ -40,7 +44,11 @@ const fetchLists = async (user: string, type: 'ANIME' | 'MANGA') => {
   return json.data.MediaListCollection.lists as any[];
 };
 
-const fullUpdate = async ({user, cutLinks = []}: FullUpdateArgs) => {
+const fullUpdate = async ({
+  user,
+  cutLinks = [],
+  splitOtherRelations = false,
+}: FullUpdateArgs) => {
   self.postMessage({
     type: 'status',
     status: 'loading',
@@ -62,7 +70,8 @@ const fullUpdate = async ({user, cutLinks = []}: FullUpdateArgs) => {
     [...animeLists, ...mangaLists],
     relationPriority,
     problematicNodes,
-    cutLinks
+    cutLinks,
+    splitOtherRelations
   );
 
   self.postMessage({

@@ -8,24 +8,44 @@ type cutLinksType = Pick<cutLinkType, 'a' | 'b'>[];
 
 //This hook runs in a React root of its own, outside the shared state provider
 //(the state is undefined in here), so it can't read the user options.
-//The relations the user cut are handed over by a component that is inside the
-//provider (ManagerWorkerResult), and used by every update that doesn't say otherwise.
-let latestCutLinks: cutLinksType = [];
-export const setCutLinksForUpdates = (cutLinks: cutLinksType) => {
-  latestCutLinks = cutLinks.map(({a, b}) => ({a, b}));
+//What shapes the series (the relations the user cut, how "Other" relations
+//are treated) is handed over by a component that is inside the provider
+//(ManagerWorkerResult), and used by every update that doesn't say otherwise.
+type updateOptionsType = {
+  cutLinks: cutLinksType;
+  splitOtherRelations: boolean;
+};
+let latestOptions: updateOptionsType = {
+  cutLinks: [],
+  splitOtherRelations: false,
+};
+export const setOptionsForUpdates = (options: updateOptionsType) => {
+  latestOptions = {
+    cutLinks: options.cutLinks.map(({a, b}) => ({a, b})),
+    splitOtherRelations: options.splitOtherRelations,
+  };
 };
 
 //sabre
 const IHateSingletonHookCreator = (
   action: 'fullUpdate',
-  args: {user: string; cutLinks?: cutLinksType}
+  args: {
+    user: string;
+    cutLinks?: cutLinksType;
+    splitOtherRelations?: boolean;
+  }
 ) => {
   console.log('Running');
   console.log(talkingWorker);
   talkingWorker.postMessage({
     type: 'start',
     action: action,
-    arguments: {user: args.user, cutLinks: args.cutLinks ?? latestCutLinks},
+    arguments: {
+      user: args.user,
+      cutLinks: args.cutLinks ?? latestOptions.cutLinks,
+      splitOtherRelations:
+        args.splitOtherRelations ?? latestOptions.splitOtherRelations,
+    },
   });
 };
 

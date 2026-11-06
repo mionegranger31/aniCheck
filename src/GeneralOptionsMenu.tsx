@@ -1,4 +1,10 @@
-import {Box, Button, Typography, useColorScheme} from '@mui/material';
+import {
+  Box,
+  Button,
+  Switch,
+  Typography,
+  useColorScheme,
+} from '@mui/material';
 import React, {FC, useEffect} from 'react';
 
 import MenuItem from '@mui/material/MenuItem';
@@ -6,7 +12,12 @@ import Select, {SelectChangeEvent} from '@mui/material/Select';
 import {ButtonInputRow} from './ButtonInputRow';
 import {useSharedState} from './Store';
 import {cutLinkType, userOptionType} from './Types';
-import {getCutLinks, linkKey, updateCompletion} from './Utils';
+import {
+  getCutLinks,
+  getSplitOtherRelations,
+  linkKey,
+  updateCompletion,
+} from './Utils';
 import {useUpdateWorker} from './lib/useUpdateWorker';
 
 const GeneralOptionsMenu: FC = () => {
@@ -14,6 +25,20 @@ const GeneralOptionsMenu: FC = () => {
   const {mode, setMode} = useColorScheme();
   const {run} = useUpdateWorker();
   const cutLinks = getCutLinks(state.userOptions);
+  const splitOther = getSplitOtherRelations(state.userOptions);
+
+  //Series are built when the data is computed, so changing how "Other"
+  //relations are treated recalculates them right away
+  const toggleSplitOther = () => {
+    const splitOtherRelations = !splitOther;
+    setState(s => ({
+      ...s,
+      userOptions: {...s.userOptions, splitOtherRelations},
+    }));
+    if (state.user.name) {
+      run('fullUpdate', {user: state.user.name, splitOtherRelations});
+    }
+  };
 
   //Link the two entries again, series are rebuilt from the new data
   const restoreLink = (link: cutLinkType) => {
@@ -89,6 +114,19 @@ const GeneralOptionsMenu: FC = () => {
             <MenuItem value={'list'}>List</MenuItem>
             {/* <MenuItem value={"dark"}>Dark</MenuItem> */}
           </Select>
+        }
+      />
+      <ButtonInputRow
+        name="Split series linked by “Other”"
+        helperText="Off: entries related by “Other” are grouped into one series. On: each of them gets its own series."
+        sx={{mt: 2}}
+        onClick={toggleSplitOther}
+        control={
+          <Switch
+            checked={splitOther}
+            onChange={toggleSplitOther}
+            inputProps={{'aria-label': 'Split series linked by Other'}}
+          />
         }
       />
       {cutLinks.length > 0 && (

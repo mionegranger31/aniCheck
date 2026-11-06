@@ -95,6 +95,12 @@ export type userOptionType = {
    * computed, always read it through `getCutLinks`.
    */
   cutLinks?: cutLinkType[];
+  /**
+   * When on, entries related only by "Other" are not grouped into one series.
+   * Applied when the data is computed, always read it through
+   * `getSplitOtherRelations`.
+   */
+  splitOtherRelations?: boolean;
 };
 
 export type cutLinkType = {

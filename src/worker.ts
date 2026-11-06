@@ -4,9 +4,16 @@ export const wComputeData = (
   data: any[],
   relationPriority: {[key: string]: number},
   problematicEles: string[],
-  cutLinks: {a: string; b: string}[] = []
+  cutLinks: {a: string; b: string}[] = [],
+  splitOtherRelations = false
 ) => {
-  return computeData(data, relationPriority, problematicEles, cutLinks);
+  return computeData(
+    data,
+    relationPriority,
+    problematicEles,
+    cutLinks,
+    splitOtherRelations
+  );
 };
 
 // export const wTest = () => {

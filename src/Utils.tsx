@@ -510,6 +510,11 @@ export function findSeriesOfEntries(
   return undefined;
 }
 
+/** Whether "Other" relations keep entries apart. Safe on caches saved before the option existed */
+export function getSplitOtherRelations(userOptions: userOptionType): boolean {
+  return userOptions.splitOtherRelations ?? false;
+}
+
 /// Hidden entries
 /** Ids of the entries the user chose to ignore. Safe on caches saved before the option existed */
 export function getHiddenNodes(userOptions: userOptionType): string[] {
@@ -746,13 +751,16 @@ export function updateCompletion(state: globalStateType) {
  * @param relationPriority
  * @param problematicNodes
  * @param cutLinks relations to ignore, every edge between the two entries is dropped
+ * @param splitOtherRelations when true two entries whose strongest relation is
+ * "Other" end up in different series (if they have any other relation too, that one still links them)
  * @returns seriesDict
  */
 export function computeData(
   data: any[],
   relationPriority: {[key: string]: number},
   problematicEles: string[],
-  cutLinks: Pick<cutLinkType, 'a' | 'b'>[] = []
+  cutLinks: Pick<cutLinkType, 'a' | 'b'>[] = [],
+  splitOtherRelations = false
 ) {
   console.log('ComputeData');
   const cy = cytoscape({headless: true});
@@ -912,8 +920,14 @@ export function computeData(
       e.restore();
     });
 
+    //Only the strongest relation of each pair is left here, so a pair with
+    //"Other" and something else is still linked by the something else
     serieComplete
-      .filter("node, edge[relation!='CHARACTER']")
+      .filter(
+        splitOtherRelations
+          ? "node, edge[relation!='CHARACTER'][relation!='OTHER']"
+          : "node, edge[relation!='CHARACTER']"
+      )
       .difference(avoidEles())
       .components()
       .map(seriePart => {
